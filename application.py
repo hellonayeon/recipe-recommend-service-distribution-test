@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, jsonify, request, redirect, url_for
 from pymongo import MongoClient
 from bson import ObjectId
@@ -5,29 +6,22 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import jwt  # pip install PyJWT
 import hashlib
-import json
-import secrets
 
 # Flask 초기화
 app = Flask(__name__)
 
 # MongoDB 초기화
-client = MongoClient('localhost', 27017)
+client = MongoClient(os.environ['MONGO_DB_PATH'])
 db = client.dbrecipe
-
-# JWT 암호화 키값 가져오기
-with open('secrets.json') as file:
-    secrets = json.loads(file.read())
 
 
 @app.route('/')
 def home():
     token_receive = request.cookies.get('mytoken')
     try:
-        payload = jwt.decode(token_receive, secrets["SECRET_KEY"], algorithms=['HS256'])
+        payload = jwt.decode(token_receive, os.environ["JWT_SECRET_KEY"], algorithms=['HS256'])
         user_info = db.users.find_one({'_id': ObjectId(payload['user_id'])})
         user_info['_id'] = payload['user_id']
-        print(user_info)
         return render_template('index.html', user_info=user_info)
     except jwt.ExpiredSignatureError:
         return redirect(url_for("login", msg="로그인 시간이 만료되었습니다."))
@@ -46,7 +40,7 @@ def user(_id):
     # 사용자의 개인 정보를 볼 수 있는 유저 페이지
     token_receive = request.cookies.get('mytoken')
     try:
-        payload = jwt.decode(token_receive, secrets["SECRET_KEY"], algorithms=['HS256'])
+        payload = jwt.decode(token_receive, os.environ["JWT_SECRET_KEY"], algorithms=['HS256'])
 
         # TODO: 다른 사람이 마이페이지를 방문할 경우 처리 필요(?) / status 데이터 사용
         # 사용자 토큰의 user_id 와 API로 넘어온 _id가 동일하지 않을 경우 로그인화면으로 다시 돌려보냄.
@@ -55,8 +49,6 @@ def user(_id):
 
         user_info = db.users.find_one({'_id': ObjectId(payload['user_id'])})
         user_info['_id'] = payload['user_id']
-        print('my page user info = ')
-        print(user_info)
         return render_template('user.html', user_info=user_info)
     except jwt.ExpiredSignatureError:
         return redirect(url_for("login", msg="로그인 시간이 만료되었습니다."))
@@ -69,7 +61,7 @@ def update_profile():
     # 사용자 프로필 변경 요청 API
     token_receive = request.cookies.get('mytoken')
     try:
-        payload = jwt.decode(token_receive, secrets["SECRET_KEY"], algorithms=['HS256'])
+        payload = jwt.decode(token_receive, os.environ["JWT_SECRET_KEY"], algorithms=['HS256'])
         _id = payload["user_id"]
         username_receive = request.form["username_give"]
         introduce_receive = request.form["introduce_give"]
@@ -96,7 +88,7 @@ def delete_img():
     # 사용자 프로필 이미지 삭제 요청 API
     token_receive = request.cookies.get('mytoken')
     try:
-        payload = jwt.decode(token_receive, secrets["SECRET_KEY"], algorithms=['HS256'])
+        payload = jwt.decode(token_receive, os.environ["JWT_SECRET_KEY"], algorithms=['HS256'])
         _id = payload["user_id"]
         origin_doc = {
             "PROFILE_PIC": "",
@@ -117,7 +109,7 @@ def change_password():
     # 사용자 비밀번호 변경 요청 API
     token_receive = request.cookies.get('mytoken')
     try:
-        payload = jwt.decode(token_receive, secrets["SECRET_KEY"], algorithms=['HS256'])
+        payload = jwt.decode(token_receive, os.environ["JWT_SECRET_KEY"], algorithms=['HS256'])
         _id = payload["user_id"]
         existing_password_receive = request.form["existing_password_give"]
         changing_password_receive = request.form["changing_password_give"]
@@ -157,7 +149,7 @@ def sign_in():
          'user_id': _id,
          'exp': datetime.utcnow() + timedelta(seconds=60 * 60 * 24)  # 로그인 24시간 유지
         }
-        token = jwt.encode(payload, secrets["SECRET_KEY"], algorithm='HS256')
+        token = jwt.encode(payload, os.environ["JWT_SECRET_KEY"], algorithm='HS256')
 
         return jsonify({'result': 'success', 'token': token})
     # 찾지 못하면
@@ -203,7 +195,7 @@ def ingredient_listing():
 def make_recipe_list():
     token_receive = request.cookies.get('mytoken')
     try:
-        payload = jwt.decode(token_receive, secrets["SECRET_KEY"], algorithms=['HS256'])
+        payload = jwt.decode(token_receive, os.environ["JWT_SECRET_KEY"], algorithms=['HS256'])
         _id = payload["user_id"]
 
         ## 결과로 출력할 RECIPE_ID들을 DB에서 가져오는 과정.
@@ -244,7 +236,7 @@ def make_recipe_list():
 
             data_we_want = list(recipe_ids & ingredient_set)
 
-        # 만약 'GET' 방식이면, "레시피 검색 기능" 혹은 "좋아요 탭"을 사용한 것으로 인식 
+        # 만약 'GET' 방식이면, "레시피 검색 기능" 혹은 "좋아요 탭"을 사용한 것으로 인식
         elif request.method == 'GET':
             recipe_search_name = request.args.get("recipe-search-name")
 
@@ -283,7 +275,7 @@ def get_recipe_detail():
     recipe_id = int(request.args.get("recipe-id"))
     token_receive = request.cookies.get('mytoken')
     try:
-        payload = jwt.decode(token_receive, secrets["SECRET_KEY"], algorithms=['HS256'])
+        payload = jwt.decode(token_receive, os.environ["JWT_SECRET_KEY"], algorithms=['HS256'])
         _id = payload["user_id"]
 
         # 레시피 정보
@@ -394,7 +386,7 @@ def delete_comment():
 def update_like() :
     token_receive = request.cookies.get('mytoken')
     try :
-        payload = jwt.decode(token_receive, secrets["SECRET_KEY"], algorithms=['HS256'])
+        payload = jwt.decode(token_receive, os.environ["JWT_SECRET_KEY"], algorithms=['HS256'])
         _id = payload["user_id"]
 
         user_info = db.users.find_one({"_id": ObjectId(_id)})
@@ -408,7 +400,7 @@ def update_like() :
             "USER_ID": user_info["_id"]
         }
 
-        if action == "like" : 
+        if action == "like" :
             db.likes.insert_one(doc)
         else:
             db.likes.delete_one(doc)
@@ -423,4 +415,4 @@ def update_like() :
 
 
 if __name__ == '__main__':
-    app.run('0.0.0.0', port=5000, debug=True)
+    app.run('0.0.0.0', debug=True)

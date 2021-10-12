@@ -1,8 +1,9 @@
+import os
 import requests
 from pymongo import MongoClient
 import json
 
-client = MongoClient('localhost', 27017)
+client = MongoClient(os.environ['MONGO_DB_PATH'])
 db = client.dbrecipe
 
 with open('recipe_ingredient_map.json', 'r', encoding='UTF8') as file:
