@@ -8,14 +8,14 @@ import jwt  # pip install PyJWT
 import hashlib
 
 # Flask 초기화
-app = Flask(__name__)
+application = Flask(__name__)
 
 # MongoDB 초기화
 client = MongoClient(os.environ['MONGO_DB_PATH'])
 db = client.dbrecipe
 
 
-@app.route('/')
+@application.route('/')
 def home():
     token_receive = request.cookies.get('mytoken')
     try:
@@ -29,13 +29,13 @@ def home():
         return redirect(url_for("login", msg="로그인 정보가 존재하지 않습니다."))
 
 
-@app.route('/login')
+@application.route('/login')
 def login():
     msg = request.args.get("msg")
     return render_template('login.html', msg=msg)
 
 
-@app.route('/user/<_id>')
+@application.route('/user/<_id>')
 def user(_id):
     # 사용자의 개인 정보를 볼 수 있는 유저 페이지
     token_receive = request.cookies.get('mytoken')
@@ -56,7 +56,7 @@ def user(_id):
         return redirect(url_for("login", msg="로그인 정보가 존재하지 않습니다."))
 
 
-@app.route('/user', methods=['POST'])
+@application.route('/user', methods=['POST'])
 def update_profile():
     # 사용자 프로필 변경 요청 API
     token_receive = request.cookies.get('mytoken')
@@ -83,7 +83,7 @@ def update_profile():
         return redirect(url_for("home"))
 
 
-@app.route('/user/change-img', methods=['POST'])
+@application.route('/user/change-img', methods=['POST'])
 def delete_img():
     # 사용자 프로필 이미지 삭제 요청 API
     token_receive = request.cookies.get('mytoken')
@@ -104,7 +104,7 @@ def delete_img():
         return redirect(url_for("home"))
 
 
-@app.route('/user/change-password', methods=['POST'])
+@application.route('/user/change-password', methods=['POST'])
 def change_password():
     # 사용자 비밀번호 변경 요청 API
     token_receive = request.cookies.get('mytoken')
@@ -134,7 +134,7 @@ def change_password():
         return redirect(url_for("home"))
 
 
-@app.route('/sign_in', methods=['POST'])
+@application.route('/sign_in', methods=['POST'])
 def sign_in():
     # 로그인
     email = request.form['email']
@@ -158,7 +158,7 @@ def sign_in():
 
 
 # 회원가입 정보 저장, 이메일 중복 검사
-@app.route('/sign_up/save', methods=['POST'])
+@application.route('/sign_up/save', methods=['POST'])
 def sign_up():
     username_receive = request.form['username_give']
     email_receive = request.form['email_give']
@@ -182,7 +182,7 @@ def sign_up():
 
 
 # 첫 화면 재료 항목 불러오기
-@app.route('/ingredient-and-recipe', methods=['GET'])
+@application.route('/ingredient-and-recipe', methods=['GET'])
 def ingredient_listing():
     # 중복 제거
     irdnt = list(db.recipe_ingredient.distinct("IRDNT_NM"))
@@ -191,7 +191,7 @@ def ingredient_listing():
 
 
 # "레시피 보기" 버튼 클릭 or "레시피 검색" 버튼 클릭 or 좋아요 탭 버튼을 클릭 시 실행
-@app.route('/recipe/search', methods=['POST', 'GET'])
+@application.route('/recipe/search', methods=['POST', 'GET'])
 def make_recipe_list():
     token_receive = request.cookies.get('mytoken')
     try:
@@ -270,7 +270,7 @@ def make_recipe_list():
 
 # 레시피 상세정보 API
 # TODO: 사용자가 레시피 등록할 경우, 레시피 관리 어떻게 할건지 생각해보기
-@app.route('/recipe/detail', methods=['GET'])
+@application.route('/recipe/detail', methods=['GET'])
 def get_recipe_detail():
     recipe_id = int(request.args.get("recipe-id"))
     token_receive = request.cookies.get('mytoken')
@@ -304,7 +304,7 @@ def get_recipe_detail():
         return redirect(url_for("login", msg="로그인 정보가 존재하지 않습니다."))
 
 # 댓글 목록 API
-@app.route('/recipe/comment', methods=['GET'])
+@application.route('/recipe/comment', methods=['GET'])
 def get_comments():
     recipe_id = int(request.args.get("recipe-id"))
     comments = list(db.comment.find({"RECIPE_ID": recipe_id}, {"_id": False}))
@@ -313,7 +313,7 @@ def get_comments():
 
 
 # 댓글 작성 API
-@app.route('/recipe/comment', methods=['POST'])
+@application.route('/recipe/comment', methods=['POST'])
 def save_comment():
     recipe_id = int(request.form["recipe_id"])
     text = request.form["text"]
@@ -364,7 +364,7 @@ def save_comment():
 
 
 # 댓글 삭제 API
-@app.route('/recipe/comment', methods=['DELETE'])
+@application.route('/recipe/comment', methods=['DELETE'])
 def delete_comment():
     nick_nm = request.form["nick_nm"]
     pw = request.form["pw"]
@@ -381,8 +381,8 @@ def delete_comment():
 
 
 # 좋아요 기능
-@app.route('/recipe/update_like', methods=['POST'])
-@app.route('/user/recipe/update_like', methods=['POST'])
+@application.route('/recipe/update_like', methods=['POST'])
+@application.route('/user/recipe/update_like', methods=['POST'])
 def update_like() :
     token_receive = request.cookies.get('mytoken')
     try :
@@ -415,5 +415,5 @@ def update_like() :
 
 
 if __name__ == '__main__':
-    app.debug = True
-    app.run()
+    application.debug = True
+    application.run()
